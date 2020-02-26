@@ -1,0 +1,22 @@
+--[[
+    create by baihan 2020.02.25 
+    宝石的基本类型
+--]]
+
+local Gem = Class("Gem")
+
+-- 主要图片
+Gem.m_mainImage = nil
+Gem.m_transfrom = nil
+
+function Gem:ctor(trans)
+    self.m_transfrom = trans
+    self.m_mainImage = self.m_transfrom.gameObject:GetComponent("RawImage")
+end
+
+-- 改变图片
+function Gem:ChangeImage(texNewImage)
+    self.m_mainImage.texture = texNewImage
+end
+
+return Gem;

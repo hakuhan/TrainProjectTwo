@@ -1,0 +1,187 @@
+--[[    create by baihan 2020.02.26 
+    全局的帧调用，提供延时等操作
+
+    for i,time in pairs(self.tickTimeList) do 
+    lua遍历时不能在其中删除又添加，因为key = value 是链表，会有依赖 
+--]]
+local GTime = {
+    handIndex = 1,
+    --更新函数
+    updateList = {},
+    --延时函数 多少帧后运行
+    delayFrameList = {},
+    delayFrameCountList = {},
+    --延时函数 多少秒后运行
+    delayList = {},
+    delayTimeList = {},
+    --延时函数 每隔多少时间运行多少次
+    tickList = {},
+    tickTimeList = {}, --运行时刻
+    tickTimeDeltaList = {}, --运行间隔
+    tickCountList = {}, --运行次数
+}
+
+--场景切换时，清掉所有函数，避免资源已经不存在了还在执行函数
+function GTime:Reset()
+
+    self.handIndex = 1
+
+    --更新函数
+    self.updateList = {}
+
+    --延时函数 多少帧后运行
+    self.delayFrameList = {}
+    self.delayFrameCountList = {}
+
+    --延时函数 多少秒后运行
+    self.delayList = {}
+    self.delayTimeList = {}
+
+    --延时暂停
+    self.delayPauseList = {}
+
+    --延时函数 每隔多少时间运行多少次
+    self.tickList = {}
+    self.tickTimeList = {}	--运行时刻
+    self.tickTimeDeltaList = {}	--运行间隔
+    self.tickCountList = {}		--运行次数
+
+end
+
+function GTime:Update()
+    for _, calltmp in pairs(self.updateList) do
+        calltmp()
+    end
+
+    for k, frameCount in pairs(self.delayFrameCountList) do
+        frameCount = frameCount - 1
+        if frameCount <= 0 then
+            self.delayFrameList[k]()
+            self.delayFrameList[k] = nil
+            self.delayFrameCountList[k] = nil
+        else
+            self.delayFrameCountList[k] = frameCount
+        end
+    end
+
+    self.realTime = Utime.realtimeSinceStartup
+
+    for k, time in pairs(self.delayTimeList) do
+        if self.realTime >= time and not self.delayPauseList[k] then
+            self.delayList[k]()
+            self.delayList[k] = nil
+            self.delayTimeList[k] = nil
+            self.delayPauseList[k] = nil
+        end
+    end
+
+    for i, time in pairs(self.tickTimeList) do
+        if self.realTime >= time then
+            --有可能函数执行过程中取消了，后面就为nil了，所以放最后面执行
+            local tmpCall = self.tickList[i]
+            if self.tickCountList[i] ~= -1 then
+                self.tickCountList[i] = self.tickCountList[i] - 1
+                if self.tickCountList[i] <= 0 then
+                    ----[[
+                    self.tickList[i] = nil
+                    self.tickTimeList[i] = nil
+                    self.tickTimeDeltaList[i] = nil
+                    self.tickCountList[i] = nil
+                    --]]
+                else
+                    self.tickTimeList[i] = Utime.realtimeSinceStartup + self.tickTimeDeltaList[i]
+                end
+            else
+                self.tickTimeList[i] = Utime.realtimeSinceStartup + self.tickTimeDeltaList[i]
+            end
+            tmpCall()
+        end
+    end
+end
+
+function GTime:GetHand()
+    local hand = self.handIndex
+    self.handIndex = self.handIndex + 1
+    return hand
+end
+--[[handler(self,atime.function_name) 因返回的地址不一样，self.updateList 是检查不出来是否重复的
+自己多加小心，不要重复添加
+像cocos一样返回一个hand
+]]
+function GTime:AddUpdate(call)
+    local hand = self:getHand()
+    self.updateList[hand] = call
+    return hand
+end
+
+function GTime:RemoveUpdate(hand)
+    if not hand then return end
+    self.updateList[hand] = nil
+end
+
+function GTime:AddUpdateFrame(call, delayFrame)
+    local hand = self:getHand()
+    self.delayFrameList[hand] = call
+    self.delayFrameCountList[hand] = delayFrame
+    return hand
+end
+
+function GTime:RemoveUpdateFrame(hand)
+    if not hand then return end
+    self.delayFrameList[hand] = nil
+    self.delayFrameCountList[hand] = nil
+end
+
+function GTime:AddDelay(call, delayTime)
+    local hand = self:getHand()
+    self.delayList[hand] = call
+    self.delayTimeList[hand] = Utime.realtimeSinceStartup + delayTime
+    return hand
+end
+
+--暂停
+function GTime:DelayPause(hand)
+    if not self.delayList[hand] then
+        return
+    end
+    --记录暂停时刻
+    self.delayPauseList[hand] = Utime.realtimeSinceStartup
+end
+
+--恢复
+function GTime:DelayResume(hand)
+    if not self.delayList[hand] or not self.delayPauseList[hand] then
+        return
+    end
+    --暂停了多久
+    local dtTime = Utime.realtimeSinceStartup - self.delayPauseList[hand]
+    --更新时间
+    self.delayTimeList[hand] = self.delayTimeList[hand] + dtTime
+    self.delayPauseList[hand] = nil
+end
+
+function GTime:RemoveDelay(hand)
+    if not hand then return end
+    self.delayList[hand] = nil
+    self.delayTimeList[hand] = nil
+end
+
+function GTime:AddTick(call, ticktime, count)
+    local hand = self:getHand()
+    self.tickList[hand] = call
+    self.tickTimeList[hand] = Utime.realtimeSinceStartup + ticktime	--运行时刻
+    self.tickTimeDeltaList[hand] = ticktime	--运行间隔
+    self.tickCountList[hand] = count or -1		--运行次数
+    return hand
+end
+
+function GTime:RemoveTick(hand)
+    if not hand then return end
+    self.tickList[hand] = nil
+    self.tickTimeList[hand] = nil
+    self.tickTimeDeltaList[hand] = nil
+    self.tickCountList[hand] = nil
+end
+
+
+return GTime

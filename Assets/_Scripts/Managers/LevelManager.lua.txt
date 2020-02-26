@@ -1,0 +1,11 @@
+--[[
+    create by baihan 2020.02.25 
+    地图的管理类 
+--]]
+local LevelManager = Class("LevelManager")
+
+function LevelManager:ctor()
+
+end
+
+return LevelManager

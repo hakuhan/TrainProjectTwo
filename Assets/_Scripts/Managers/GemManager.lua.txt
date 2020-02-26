@@ -1,0 +1,80 @@
+--[[    create by baihan 2020.02.25 
+    宝石的管理类 
+--]]
+local GemManager = Class("GemManager")
+local Gem = require("Items.Gem")
+
+GemManager.m_transform = nil
+-- 图片资源
+GemManager.m_scrObjData = {}
+-- gem容器
+GemManager.m_lsGems = {}
+-- gem的预制体
+GemManager.m_objGemTemp = nil
+
+
+local m_eGemType = {
+    [1] = "Green",
+    [2] = "Blue",
+    [3] = "Yellow",
+    [4] = "Red",
+    [5] = "Purple",
+    [6] = "Diamond",
+}
+
+local m_tbRate = {
+    ["Green"] = 0.35,
+    ["Blue"] = 0.7,
+    ["Yellow"] = 0.8,
+    ["Red"] = 0.9,
+    ["Purple"] = 1,
+}
+
+local m_tbTexIndex = {
+    ["Green"] = 0,
+    ["Blue"] = 1,
+    ["Yellow"] = 2,
+    ["Red"] = 3,
+    ["Purple"] = 4,
+    ["Diamond"] = 5
+}
+
+local m_strTexPath = ScriptablePath .. "scrObjGemTextures"
+local m_strGemPath = PrefabPath .. "Gem"
+
+function GemManager:ctor(trans)
+    self.m_transform = trans
+    self.m_scrObjData = CS.UnityEngine.Resources.Load(m_strTexPath)
+    self.m_objGemTemp = CS.UnityEngine.Resources.Load(m_strGemPath)
+
+    self:CreateGem(5);
+
+end
+
+-- 通过随机概率生成宝石
+function GemManager:CreateGem(num)
+    for i = 1, num do
+        -- Create rate
+        local strGemTex = nil
+        -- local gemRate = math.random(0, 1)
+        local gemRate = math.random(1, 10) * 0.1
+        print("Rate is: " .. gemRate)
+
+        for i, v in ipairs(m_eGemType) do
+            if m_tbRate[v] >= gemRate then
+                strGemTex = m_tbTexIndex[v]
+                break
+            end
+        end
+        local texGem = self.m_scrObjData.lsDatas[strGemTex].value;
+
+        -- Create gem
+        local objNewGem = CS.UnityEngine.GameObject.Instantiate(self.m_objGemTemp, self.m_transform)
+        local scrGem = Gem.New(objNewGem)
+        table.insert(self.m_lsGems, scrGem)
+
+        scrGem:ChangeImage(texGem)
+    end
+end
+
+return GemManager

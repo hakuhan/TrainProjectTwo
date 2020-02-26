@@ -1,0 +1,21 @@
+--[[
+    create by baihan 2020.02.25 
+    lua的全局常量
+--]]
+
+Global = {}
+
+Unity = CS.UnityEngine
+Utime = Unity.Time
+Uinstantiate = Unity.Object.Instantiate
+Uvec3 = Unity.Vector3
+Uvec2 = Unity.Vector2
+Ucolor = Unity.Color
+Udestroy = Unity.Object.Destroy
+
+require("BaseClass.Class")
+GTime = require("Utils.GTime")
+ScriptablePath = "ScriptableObjects/"
+PrefabPath = "Prefabs/"
+
+return Global

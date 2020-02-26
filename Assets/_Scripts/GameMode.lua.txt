@@ -1,0 +1,46 @@
+--[[
+    create by baihan 2020.02.25 
+    游戏的总控制
+--]]
+local GemManager = require("Managers.GemManager")
+
+local GameMode = Class("GameMode")
+
+local gemManager = nil
+
+function Awake()
+    -- local objGemManager = self.transform:FindChild("GemManager")
+    -- local objGemManager = objGemManager
+    gemManager = GemManager.New(objGemManager.transform)
+    GTime:Reset()
+end
+
+function Start()
+    
+end
+
+function Enable()
+    
+end
+
+function Disable()
+    
+end
+
+function OnAppPause(pause)
+    if pause then
+        print("On application pause")
+    else
+        print("On appcation resume")
+    end
+end
+
+function Update()
+    GTime:Update()
+end
+
+function OnDestroy()
+    print("GameMode Destroy")
+end
+
+return GameMode

@@ -1,0 +1,5 @@
+local WallLine = Class("WallLine")
+
+
+
+return WallLine
