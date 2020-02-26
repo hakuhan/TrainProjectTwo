@@ -1,0 +1,29 @@
+--[[    create by baihan 2020.02.26 
+    StateMachine类，控制状态流程 
+--]]
+local StateMachine = Class("StateMachine")
+local State = require("BaseClass.StateMachine.State")
+
+StateMachine.m_scrCurrentState = nil
+
+function StateMachine:ctor()
+    self.m_scrCurrentState = State.Empty()
+end
+
+-- 切换state
+function StateMachine:SwitchState(newState)
+    self.m_scrCurrentState:End()
+
+    self.m_scrCurrentState = newState
+    self.m_scrCurrentState:Begin()
+end
+
+-- 每帧调用
+function StateMachine:Tick()
+    if self.m_scrCurrentState ~= nil then
+        self.m_scrCurrentState:Tick()
+    end
+end
+
+
+return StateMachine

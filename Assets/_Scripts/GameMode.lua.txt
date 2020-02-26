@@ -1,14 +1,22 @@
---[[
-    create by baihan 2020.02.25 
+--[[    create by baihan 2020.02.25 
     游戏的总控制
 --]]
 local GemManager = require("Managers.GemManager")
 local MapManager = require("Managers.MapManager")
 local UiSystem = require("Ui.UiSystem")
+local State = require("BaseClass.StateMachine.State")
+local StateMachine = require("BaseClass.StateMachine.StateMachine")
+
 local GameMode = Class("GameMode")
 
 GameMode.m_scrGemManager = nil
 GameMode.m_scrMapManager = nil
+
+-- 状态机
+GameMode.m_stateMachine = nil
+GameMode.m_scrFallState = nil
+GameMode.m_scrCheckState = nil
+GameMode.m_scrEndState = nil
 
 local m_gameMode = nil
 
@@ -19,15 +27,15 @@ function Awake()
 end
 
 function Start()
-    
+
 end
 
 function Enable()
-    
+
 end
 
 function Disable()
-    
+
 end
 
 function OnAppPause(pause)
@@ -40,6 +48,7 @@ end
 
 function Update()
     GTime:Update()
+    m_gameMode.m_stateMachine:Tick()
 end
 
 function OnDestroy()
@@ -47,14 +56,27 @@ function OnDestroy()
 end
 
 ----------------------------------------------------------------------
-
 function GameMode:ctor()
     self.m_scrGemManager = GemManager.New(objGemManager)
     self.m_scrMapManager = MapManager.New(objMapManager, 1)
-    self.m_scrUiSystem = UiSystem.New(objUiSystem, function ()
+    self.m_scrUiSystem = UiSystem.New(objUiSystem, function()
         -- print("On click uplevel")
         self:UpdateLevel()
     end)
+
+    -- init state machine
+    self.m_stateMachine = StateMachine.New()
+    self.m_scrCheckState = State.New(
+        function() self:BeginCheck() end,
+        function() self:TickCheck() end,
+        function() self:EndCheck() end
+    )
+    self.m_scrFallState = State.New(
+        function() self:BeginFall() end,
+        function() self:TickFall() end,
+        function() self:EndFall() end
+    )
+    self.m_stateMachine:SwitchState(self.m_scrCheckState)
 end
 
 function GameMode:UpdateLevel()
@@ -65,5 +87,38 @@ function GameMode:UpdateLevel()
 end
 
 ----------------------------------------------------------------------
+function GameMode:BeginFall()
+    print("begin check")
+end
 
+
+function GameMode:TickFall()
+
+end
+
+function GameMode:EndFall()
+
+end
+
+----------------------------------------------------------------------
+function GameMode:BeginCheck()
+    print("begin check")
+end
+
+
+function GameMode:TickCheck()
+
+end
+
+function GameMode:EndCheck()
+
+end
+
+----------------------------------------------------------------------
+
+function GameMode:BeginEndState()
+    print("game end")
+end
+
+----------------------------------------------------------------------
 return GameMode
