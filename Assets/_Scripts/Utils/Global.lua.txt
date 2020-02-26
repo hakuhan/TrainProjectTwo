@@ -12,8 +12,11 @@ Uvec3 = Unity.Vector3
 Uvec2 = Unity.Vector2
 Ucolor = Unity.Color
 Udestroy = Unity.Object.Destroy
+DOtween = CS.DG.Tweening.DOTween
 
 require("BaseClass.Class")
+UnityObjectClass = require("BaseClass.UnityObjectClass")
+
 GTime = require("Utils.GTime")
 ScriptablePath = "ScriptableObjects/"
 PrefabPath = "Prefabs/"

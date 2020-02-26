@@ -1,5 +1,7 @@
-local WallLine = Class("WallLine")
+local WallLine = Class("WallLine", UnityObjectClass)
 
-
+function WallLine:Init()
+    
+end
 
 return WallLine

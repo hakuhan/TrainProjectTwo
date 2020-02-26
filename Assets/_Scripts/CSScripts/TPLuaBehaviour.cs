@@ -6,6 +6,7 @@
 using UnityEngine;
 using XLua;
 using System;
+using DG.Tweening;
 
 namespace TPTwo
 {
@@ -69,6 +70,7 @@ namespace TPTwo
         void Start()
         {
             luaStart?.Invoke();
+            // transform.DOScale(new Vector3(), 0.1f).OnComplete()
         }
 
         // Update is called once per frame

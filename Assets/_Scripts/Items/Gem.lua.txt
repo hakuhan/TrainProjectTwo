@@ -1,22 +1,30 @@
---[[
-    create by baihan 2020.02.25 
+--[[    create by baihan 2020.02.25 
     宝石的基本类型
 --]]
-
-local Gem = Class("Gem")
+local Gem = Class("Gem", UnityObjectClass)
 
 -- 主要图片
 Gem.m_mainImage = nil
-Gem.m_transfrom = nil
 
-function Gem:ctor(trans)
-    self.m_transfrom = trans
-    self.m_mainImage = self.m_transfrom.gameObject:GetComponent("RawImage")
+function Gem:Init(texNewImage)
+    self.m_mainImage = self.m_transform.gameObject:GetComponent("RawImage")
+
+    if texNewImage ~= nil then
+        self:ChangeImage(texNewImage)
+    end
 end
 
 -- 改变图片
 function Gem:ChangeImage(texNewImage)
     self.m_mainImage.texture = texNewImage
+end
+
+-- 播放动画并删除
+function Gem:DestoryWithAnimation(fDestoryTime)
+    local deadTween = self.m_transform:DOScale(Uvec3(0, 0, 0), fDestoryTime)
+    deadTween:OnComplete(function ()
+        Udestroy(self.m_transform.gameObject)
+    end)
 end
 
 return Gem;

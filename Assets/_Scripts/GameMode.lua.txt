@@ -11,7 +11,7 @@ local gemManager = nil
 function Awake()
     -- local objGemManager = self.transform:FindChild("GemManager")
     -- local objGemManager = objGemManager
-    gemManager = GemManager.New(objGemManager.transform)
+    gemManager = GemManager.New(objGemManager)
     GTime:Reset()
 end
 

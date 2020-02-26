@@ -1,10 +1,9 @@
 --[[    create by baihan 2020.02.25 
     宝石的管理类 
 --]]
-local GemManager = Class("GemManager")
+local GemManager = Class("GemManager", UnityObjectClass)
 local Gem = require("Items.Gem")
 
-GemManager.m_transform = nil
 -- 图片资源
 GemManager.m_scrObjData = {}
 -- gem容器
@@ -42,8 +41,7 @@ local m_tbTexIndex = {
 local m_strTexPath = ScriptablePath .. "scrObjGemTextures"
 local m_strGemPath = PrefabPath .. "Gem"
 
-function GemManager:ctor(trans)
-    self.m_transform = trans
+function GemManager:Init()
     self.m_scrObjData = CS.UnityEngine.Resources.Load(m_strTexPath)
     self.m_objGemTemp = CS.UnityEngine.Resources.Load(m_strGemPath)
 
@@ -56,9 +54,7 @@ function GemManager:CreateGem(num)
     for i = 1, num do
         -- Create rate
         local strGemTex = nil
-        -- local gemRate = math.random(0, 1)
         local gemRate = math.random(1, 10) * 0.1
-        print("Rate is: " .. gemRate)
 
         for i, v in ipairs(m_eGemType) do
             if m_tbRate[v] >= gemRate then
@@ -70,10 +66,8 @@ function GemManager:CreateGem(num)
 
         -- Create gem
         local objNewGem = CS.UnityEngine.GameObject.Instantiate(self.m_objGemTemp, self.m_transform)
-        local scrGem = Gem.New(objNewGem)
+        local scrGem = Gem.New(objNewGem, texGem)
         table.insert(self.m_lsGems, scrGem)
-
-        scrGem:ChangeImage(texGem)
     end
 end
 
