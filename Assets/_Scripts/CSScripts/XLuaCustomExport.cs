@@ -52,6 +52,12 @@ namespace jz.mymj
             typeof(DG.Tweening.DOTweenVisualManager),
 
             typeof(UnityEngine.EventSystems.EventSystem),
+
+            //line renderer
+            typeof(LineRenderer),
+            typeof(UnityEngine.LineAlignment),
+            typeof(UnityEngine.LineTextureMode),
+            typeof(UnityEngine.Color),
         };
     }
 }

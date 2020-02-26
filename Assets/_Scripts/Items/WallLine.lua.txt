@@ -1,7 +1,27 @@
+--[[
+    create by baihan 2020.02.26 
+    创建地图墙的线 
+--]]
 local WallLine = Class("WallLine", UnityObjectClass)
 
-function WallLine:Init()
-    
+function WallLine:Init(iLenth, bHorizontal)
+    self.m_lineRenderer = self.m_transform:GetComponent("LineRenderer")
+
+    self.m_lineRenderer.startWidth = 0.5
+    self.m_lineRenderer.endWidth = 0.5
+    self.m_lineRenderer.useWorldSpace = true
+
+    self.m_lineRenderer.positionCount = 2
+
+    -- set points
+    local v3StartPosition = self.m_transform.position;
+    local v3EndPosition = nil
+    if bHorizontal then
+        v3EndPosition = v3StartPosition + Uvec3(iLenth, 0, 0)
+    else
+        v3EndPosition = v3StartPosition + Uvec3(0, iLenth, 0)
+    end
+    self.m_lineRenderer:SetPositions({ v3StartPosition, v3EndPosition })
 end
 
 return WallLine

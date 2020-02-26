@@ -42,33 +42,41 @@ local m_strTexPath = ScriptablePath .. "scrObjGemTextures"
 local m_strGemPath = PrefabPath .. "Gem"
 
 function GemManager:Init()
-    self.m_scrObjData = CS.UnityEngine.Resources.Load(m_strTexPath)
-    self.m_objGemTemp = CS.UnityEngine.Resources.Load(m_strGemPath)
-
-    self:CreateGem(5);
-
+    self.m_scrObjData = Uload(m_strTexPath)
+    self.m_objGemTemp = Uload(m_strGemPath)
 end
 
 -- 通过随机概率生成宝石
-function GemManager:CreateGem(num)
-    for i = 1, num do
+function GemManager:CreateGem(tbGemPositionData)
+    for k,v in pairs(tbGemPositionData) do
         -- Create rate
+        local iGemTexIndex = nil
         local strGemTex = nil
         local gemRate = math.random(1, 10) * 0.1
 
         for i, v in ipairs(m_eGemType) do
             if m_tbRate[v] >= gemRate then
-                strGemTex = m_tbTexIndex[v]
+                iGemTexIndex = m_tbTexIndex[v]
+                strGemTex = v
                 break
             end
         end
-        local texGem = self.m_scrObjData.lsDatas[strGemTex].value;
+        local texGem = self.m_scrObjData.lsDatas[iGemTexIndex].value;
 
+        local v3Position = v;
         -- Create gem
-        local objNewGem = CS.UnityEngine.GameObject.Instantiate(self.m_objGemTemp, self.m_transform)
-        local scrGem = Gem.New(objNewGem, texGem)
+        local objNewGem = Uinstantiate(self.m_objGemTemp, v3Position, UQuaternion.identity, self.m_transform)
+        local scrGem = Gem.New(objNewGem, texGem, #self.m_lsGems + 1, strGemTex)
+
         table.insert(self.m_lsGems, scrGem)
     end
+
+    -- self:TestMove()
+end
+
+function GemManager:TestMove()
+    local targetPosition = self.m_transform:Find("TestPosition").position
+    self.m_lsGems[1]:MoveToTargetPosition(targetPosition)
 end
 
 return GemManager

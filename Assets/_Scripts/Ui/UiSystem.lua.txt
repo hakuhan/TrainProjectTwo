@@ -1,0 +1,22 @@
+--[[    create by baihan 2020.02.26 
+    管理ui界面 
+--]]
+local UiSystem = Class("UiSystem", UnityObjectClass)
+
+UiSystem.m_funcOnCLickRun = nil
+function UiSystem:Init(funcOnclickRun)
+    self.m_funcOnCLickRun = funcOnclickRun
+    self.m_btnStart = self.m_transform:Find("RunButton"):GetComponent("Button")
+    self.m_btnStart.onClick:AddListener(function()
+        self:OnclickRun()
+    end)
+end
+
+function UiSystem:OnclickRun()
+    if self.m_funcOnCLickRun ~= nil then
+        -- print("On Click start")
+        self.m_funcOnCLickRun()
+    end
+end
+
+return UiSystem

@@ -3,15 +3,18 @@
     游戏的总控制
 --]]
 local GemManager = require("Managers.GemManager")
-
+local MapManager = require("Managers.MapManager")
+local UiSystem = require("Ui.UiSystem")
 local GameMode = Class("GameMode")
 
-local gemManager = nil
+GameMode.m_scrGemManager = nil
+GameMode.m_scrMapManager = nil
+
+local m_gameMode = nil
 
 function Awake()
-    -- local objGemManager = self.transform:FindChild("GemManager")
-    -- local objGemManager = objGemManager
-    gemManager = GemManager.New(objGemManager)
+    m_gameMode = GameMode.New()
+
     GTime:Reset()
 end
 
@@ -42,5 +45,25 @@ end
 function OnDestroy()
     print("GameMode Destroy")
 end
+
+----------------------------------------------------------------------
+
+function GameMode:ctor()
+    self.m_scrGemManager = GemManager.New(objGemManager)
+    self.m_scrMapManager = MapManager.New(objMapManager, 1)
+    self.m_scrUiSystem = UiSystem.New(objUiSystem, function ()
+        -- print("On click uplevel")
+        self:UpdateLevel()
+    end)
+end
+
+function GameMode:UpdateLevel()
+    self.m_scrMapManager:UpdateMap(1)
+    local tbNotFullLevels = self.m_scrMapManager:GetAllNotFullGroupIndexese(true)
+    -- PrintTable(tbNotFullLevels)
+    self.m_scrGemManager:CreateGem(tbNotFullLevels)
+end
+
+----------------------------------------------------------------------
 
 return GameMode
