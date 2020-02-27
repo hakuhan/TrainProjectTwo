@@ -106,21 +106,58 @@ function MapManager:GetPosition(iGroup, iItemIndex)
     return tbItem["v3Position"]
 end
 
--- 得到没有填满的组的下标
-function MapManager:GetAllNotFullGroupIndexese(bUpPosition)
-    local tbResout = {}
+-- 得到没有填满的组
+function MapManager:GetAllNotFullGroup()
+    local tbResult = {}
+    for i, v in ipairs(self.m_tbPointGroups) do
+        local tbCurrentGroupDeepItem, index = self:GetDeepPoint(i)
+        if tbCurrentGroupDeepItem ~= nil then
+            tbResult[i] = {["tbItemData"] = tbCurrentGroupDeepItem, ["iGroupIndex"] = index }
+        end
+    end
+
+    return tbResult
+end
+
+-- 得到没有填满的组的下标和数据
+function MapManager:GetAllNotFullGroupIndexese(bTopIndex)
+    local tbResult = {}
     for i = 1, #self.m_tbPointGroups do
         for k, v in pairs(self.m_tbPointGroups[i]) do
-            if tbResout[i] == nil and not v["bFill"] then
-                tbResout[i] = v["v3Position"]
-                if bUpPosition then
-                    tbResout[i].y = self.m_v3StartShowPosition.y
+            if not v["bFill"] then
+                if tbResult[i] == nil then
+                    tbResult[i] = {}
                 end
+                local v3Position = Uvec3(v["v3Position"].x, v["v3Position"].y, v["v3Position"].z)
+                if bTopIndex then
+                    v3Position.y = self.m_v3StartShowPosition.y
+                end
+                table.insert(tbResult[i], v3Position)
             end
         end
     end
 
-    return tbResout
+    return tbResult
+end
+
+-- 得到每一组创建宝石的位置
+function MapManager:GetGroupCreatePosition(iGroup)
+    local tbGroup = self.m_tbPointGroups[iGroup];
+    local v3Result = tbGroup[1]["v3Position"]
+    v3Result.y = self.m_v3StartShowPosition.y
+end
+
+-- 得到对应下标的位置
+function MapManager:GetPoint(iGroup, iItemIndex)
+    local v3Result = nil
+    local tbGroup = self.m_tbPointGroups[iGroup];
+    local tbItem = tbGroup[iItemIndex]
+
+    if not tbItem["bFill"] then
+        v3Result = tbItem["v3Position"]
+    end
+
+    return v3Result
 end
 
 -- 填充iGroup组的iItemIndex位置（1为最下的位置）
@@ -142,18 +179,45 @@ function MapManager:GetFreePoints(iGroup)
     return tbFreeCount
 end
 
--- 得到当前组为空且最深的点
+-- 得到每组最上面的位置
+function MapManager:GetAllGroupDeepPosition()
+    local tbPositions = {}
+    for groupIndex, group in ipairs(self.m_tbPointGroups) do
+        local tbDeepInfo = {}
+        local iDeepIndex = #group + 1
+        local v3CurrentGroupDeepPoint = Uvec3(group[1]["v3Position"].x, self.m_v3StartShowPosition.y, self.m_v3StartShowPosition.z)
+
+        for iGroupItemIndex, tbItem in ipairs(group) do
+            if not tbItem["bFill"] and iDeepIndex > iGroupItemIndex then
+                iDeepIndex = iGroupItemIndex
+                v3CurrentGroupDeepPoint = tbItem["v3Position"]
+            end
+        end
+
+        tbDeepInfo["iIndex"] = iDeepIndex
+        tbDeepInfo["v3Position"] = v3CurrentGroupDeepPoint
+        tbDeepInfo["iDistance"] = m_iWallLineDistance
+        tbDeepInfo["iGroupCount"] = #group
+        tbPositions[groupIndex] = tbDeepInfo
+    end
+
+    return tbPositions
+end
+
+-- 得到当前组最深的点
 function MapManager:GetDeepPoint(iGroup)
     local tbGroupItem = nil
+    local index = nil
 
     for i, v in ipairs(self.m_tbPointGroups[iGroup]) do
         if not v["bFill"] then
             tbGroupItem = v
+            index = i
             break
         end
     end
 
-    return tbGroupItem
+    return tbGroupItem, index
 end
 
 -- 当前组是否填满

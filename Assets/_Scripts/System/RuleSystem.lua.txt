@@ -1,0 +1,71 @@
+--[[    create by baihan 2020.02.27 
+    游戏规则判断系统 
+--]]
+local RuleSystem = Class("RuleSystem")
+
+local m_clearLevelDiamondCount = 3
+RuleSystem.m_iCurrentDiamondCount = 0
+
+-- 每关连线的数量
+local m_lineNumber = {
+    [1] = 3,
+    [2] = 4,
+    [3] = 4,
+}
+
+function RuleSystem.ctor()
+
+end
+
+-- 是否通关
+function RuleSystem:IsClearLevel()
+    return self.m_iCurrentDiamondCount >= m_clearLevelDiamondCount
+end
+
+-- 添加数量
+function RuleSystem:AppendDiamond(iDiamond)
+    self.m_iCurrentDiamondCount = self.m_iCurrentDiamondCount + iDiamond
+end
+
+function RuleSystem:Reset()
+    self.m_iCurrentDiamondCount = 0
+end
+
+function RuleSystem:FallGem(scrMapManager, scrGemManager)
+    -- 移动所有在地图上的宝石
+    local lsNotFullGroup = scrMapManager:GetAllNotFullGroup()
+
+    for iGroupId, groupItem in pairs(lsNotFullGroup) do
+        for iGemIndex, v in pairs(scrGemManager.m_lsGems) do
+            if v.m_iGroupIndex < #scrMapManager.m_tbPointGroups and v.m_iGroupIndex > v["iGroupIndex"] then
+                -- move down
+                local iStep = scrGemManager:GetLowerGemCount(v)
+                local iGroupIndex = v.m_iGroupIndex - iStep
+                local v3MovePosition = scrMapManager:GetPoint(iGroupId, iGroupIndex)
+
+                scrGemManager:MoveGem(iGemIndex, v3MovePosition, iGroupIndex)
+                -- print("iGroup id: " .. iGroupId .. " iRaw: " .. iGroupIndex)
+                scrMapManager:FillPoint(iGroupId, iGroupIndex)
+            end
+        end
+    end
+
+    -- 移动没有下落的宝石
+    local lsAllGroupDownPosition = scrMapManager:GetAllGroupDeepPosition();
+    scrGemManager:MoveAllGemDown(lsAllGroupDownPosition)
+end
+
+-- 检查连线和砖石
+function RuleSystem:CheckLink(iCurrentLevel, scrGemManager)
+    local bNeedFall = false
+    
+    print(m_lineNumber[iCurrentLevel])
+    local tbLink = scrGemManager:GetLinkedGemIndex(m_lineNumber[iCurrentLevel])
+    
+
+    PrintTable(tbLink)
+
+    return bNeedFall
+end
+
+return RuleSystem

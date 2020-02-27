@@ -47,36 +47,190 @@ function GemManager:Init()
 end
 
 -- 通过随机概率生成宝石
-function GemManager:CreateGem(tbGemPositionData)
-    for k,v in pairs(tbGemPositionData) do
-        -- Create rate
-        local iGemTexIndex = nil
-        local strGemTex = nil
-        local gemRate = math.random(1, 10) * 0.1
+function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
+    for iGroupId, lsPositions in pairs(tbGemPositionData) do
+        for i, v3Position in pairs(lsPositions) do
+            -- Create rate
+            local iGemTexIndex = nil
+            local strGemTex = nil
+            local gemRate = math.random(1, 10) * 0.1
 
-        for i, v in ipairs(m_eGemType) do
-            if m_tbRate[v] >= gemRate then
-                iGemTexIndex = m_tbTexIndex[v]
-                strGemTex = v
-                break
+            -- 得到图片
+            for j, tex in ipairs(m_eGemType) do
+                if m_tbRate[tex] >= gemRate then
+                    iGemTexIndex = m_tbTexIndex[tex]
+                    strGemTex = tex
+                    break
+                end
             end
+            local texGem = self.m_scrObjData.lsDatas[iGemTexIndex].value;
+
+            -- Create gem
+            local objNewGem = Uinstantiate(self.m_objGemTemp, v3Position, UQuaternion.identity, self.m_transform)
+            local scrGem = Gem.New(objNewGem, texGem, #self.m_lsGems + 1, strGemTex, iGroupId, iGroupDeep + 1)
+
+            table.insert(self.m_lsGems, scrGem)
+
         end
-        local texGem = self.m_scrObjData.lsDatas[iGemTexIndex].value;
-
-        local v3Position = v;
-        -- Create gem
-        local objNewGem = Uinstantiate(self.m_objGemTemp, v3Position, UQuaternion.identity, self.m_transform)
-        local scrGem = Gem.New(objNewGem, texGem, #self.m_lsGems + 1, strGemTex)
-
-        table.insert(self.m_lsGems, scrGem)
     end
 
-    -- self:TestMove()
 end
 
-function GemManager:TestMove()
-    local targetPosition = self.m_transform:Find("TestPosition").position
-    self.m_lsGems[1]:MoveToTargetPosition(targetPosition)
+-- 清理所有gem
+function GemManager:ClearAllGem()
+    for k, v in pairs(self.m_lsGems) do
+        Udestroy(v.m_object)
+    end
+    self.m_lsGems = {}
+end
+
+-- 移动宝石
+function GemManager:MoveGem(gemIndex, v3TargetPosition, iNextGroupIndex)
+    -- local targetPosition = self.m_transform:Find("TestPosition").position
+    self.m_lsGems[gemIndex]:MoveToTargetPosition(v3TargetPosition, iNextGroupIndex)
+end
+
+-- 得到当前宝石下面的宝石
+function GemManager:GetLowerGemCount(gem)
+    local iResult = 0
+
+    for k, v in self.m_lsGems do
+        if v.m_iId ~= gem.m_iId and v.m_iGroup == gem.m_iGroup and v.m_iGroupIndex < gem.m_iGroupIndex then
+            iResult = iResult + 1
+        end
+    end
+
+    return iResult
+end
+
+-- 移动所有宝石{0:{"iIndex":0, "v3Position":(0, 0, 0), "iGroupCount": 4, "iDistance":10}}
+function GemManager:MoveAllGemDown(lsDeepPosition)
+    for iGroupId, iDeepInfo in pairs(lsDeepPosition) do
+        -- print("move group: " .. iGroupId)
+        local iDeepIndex = iDeepInfo["iIndex"]
+        local v3DeepPosition = iDeepInfo["v3Position"]
+        local iGroupCount = iDeepInfo["iGroupCount"]
+        local iStepDistance = iDeepInfo["iDistance"]
+
+        local iMoveCount = iGroupCount - iDeepIndex + 1
+        if iMoveCount > 1 then
+            local iFindIndex = 0
+            for iGemIndex, gem in pairs(self.m_lsGems) do
+                if gem.m_iGroup == iGroupId and gem.m_iGroupIndex > iDeepIndex + iFindIndex then
+                    local v3TargetPosition = v3DeepPosition + Uvec3(0, iStepDistance * iFindIndex, 0)
+                    -- print("iGroup id: " .. iGroupId .. " iRaw: " .. iDeepIndex + iFindIndex .. " position: " .. v3TargetPosition.y .. " current index: " .. iFindIndex)
+
+                    gem:MoveToTargetPosition(v3TargetPosition, iDeepIndex + iFindIndex)
+
+                    iFindIndex = iFindIndex + 1
+                end
+            end
+        end
+
+    end
+end
+
+-- 得到连成线的宝石(线的最小数量) 返回{"eGemType":{indexs:{v2}}}
+function GemManager:GetLinkedGemIndex(iMinCount)
+    local tbLineResult = {}
+
+    -- 用于判断是否已经查找过
+    local tbFindedtable = {}
+    for i = 1, #self.m_lsGems do
+        tbFindedtable[i] = false
+    end
+
+    for iGemIndex, gem in ipairs(self.m_lsGems) do
+        -- 连接线的临时结果
+        local tbTempLinkResult = {}
+        -- 已经找到且没有遍历的gem下标
+        local tbSameType = {}
+
+        local bCurrentOver = false
+        local iGroup = self.m_lsGems[iGemIndex].m_iGroup
+        local iRaw = self.m_lsGems[iGemIndex].m_iGroupIndex
+        local iCurrentIndex = iGemIndex
+
+        -- 插入当前的数据
+        self.CreateGemIndexTable(iGroup, iRaw, tbTempLinkResult, iGemIndex, gem.m_strType)
+
+        -- insert self
+        while not bCurrentOver do
+            -- 查找上下左右的gem的类型是否和当前相同
+            local scrCurrentGem = self:GetGem(iGroup, iRaw)
+            local topGem, iTopIndex = self:GetGem(iGroup, iRaw + 1)
+            local downGem, iDownIndex = self:GetGem(iGroup, iRaw - 1)
+            local leftGem, iLeftIndex = self:GetGem(iGroup - 1, iRaw)
+            local rightGem, iRightIndex = self:GetGem(iGroup + 1, iRaw)
+
+            tbFindedtable[iCurrentIndex] = true
+
+            -- 上
+            if topGem ~= nil and not tbFindedtable[iTopIndex] and topGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iTopIndex] = true
+                table.insert(tbSameType, {["iIndex"] = iTopIndex, ["iGroup"] = iGroup, ["iRaw"] = iRaw + 1 })
+                self.CreateGemIndexTable(iGroup, iRaw + 1, tbTempLinkResult, iTopIndex, gem.m_strType)
+
+                -- 下
+            elseif downGem ~= nil and not tbFindedtable[iDownIndex] and downGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iDownIndex] = true
+                table.insert(tbSameType, {["iIndex"] = iDownIndex, ["iGroup"] = iGroup, ["iRaw"] = iRaw - 1 })
+                self.CreateGemIndexTable(iGroup, iRaw - 1, tbTempLinkResult, iDownIndex, gem.m_strType)
+
+                -- 左
+            elseif leftGem ~= nil and not tbFindedtable[iLeftIndex] and leftGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iLeftIndex] = true
+                table.insert(tbSameType, {["iIndex"] = iLeftIndex, ["iGroup"] = iGroup - 1, ["iRaw"] = iRaw })
+                self.CreateGemIndexTable(iGroup - 1, iRaw, tbTempLinkResult, iLeftIndex, gem.m_strType)
+
+                -- 右
+            elseif rightGem ~= nil and not tbFindedtable[iRightIndex] and rightGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iRightIndex] = true
+                table.insert(tbSameType, {["iIndex"] = iRightIndex, ["iGroup"] = iGroup + 1, ["iRaw"] = iRaw })
+                self.CreateGemIndexTable(iGroup + 1, iRaw, tbTempLinkResult, iRightIndex, gem.m_strType)
+            end
+
+            if #tbSameType == 0 then
+                bCurrentOver = true
+            else
+                local tbIndex = table.remove(tbSameType, 1)
+                iGroup = tbIndex["iGroup"]
+                iRaw = tbIndex["iRaw"]
+                iCurrentIndex = tbIndex["iIndex"]
+            end
+        end
+
+        -- 判断是否可以添加到最终结果
+        if #tbTempLinkResult >= iMinCount then
+            -- print("Print Same type table")
+            -- PrintTable(tbTempLinkResult)
+            table.insert(tbLineResult, {[self.m_lsGems[iGemIndex].m_strType] = tbTempLinkResult })
+        end
+
+
+    end
+
+    return tbLineResult
+
+end
+
+-- 插入用于返回连接数据的表数据
+function GemManager.CreateGemIndexTable(iGroup, iRaw, tb, iGemIndex, strGemType)
+    local tbMapIndex = {["iGroup"] = iGroup, ["iRaw"] = iRaw }
+    table.insert(tb, {["iIndex"] = iGemIndex, ["eGameType"] = strGemType, ["tbMapIndex"] = tbMapIndex })
+end
+
+-- 得到gem
+function GemManager:GetGem(iGroup, iRaw)
+    local gem, iGemIndex = nil
+    for i, v in ipairs(self.m_lsGems) do
+        if v.m_iGroup == iGroup and v.m_iGroupIndex == iRaw then
+            gem = v
+            iGemIndex = i
+        end
+    end
+
+    return gem, iGemIndex
 end
 
 return GemManager

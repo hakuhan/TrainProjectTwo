@@ -4,6 +4,7 @@
 local GemManager = require("Managers.GemManager")
 local MapManager = require("Managers.MapManager")
 local UiSystem = require("Ui.UiSystem")
+local RuleSystem = require("System.RuleSystem")
 local State = require("BaseClass.StateMachine.State")
 local StateMachine = require("BaseClass.StateMachine.StateMachine")
 
@@ -11,9 +12,18 @@ local GameMode = Class("GameMode")
 
 GameMode.m_scrGemManager = nil
 GameMode.m_scrMapManager = nil
+GameMode.m_scrRuleSystem = nil
+
+-- 关卡
+GameMode.m_iTotalLevelCount = 3
+GameMode.m_iCurrentLevel = 1
+
+-- 是否重建地图
+GameMode.m_bIsRebuildMap = false
 
 -- 状态机
 GameMode.m_stateMachine = nil
+GameMode.m_scrBuildState = nil
 GameMode.m_scrFallState = nil
 GameMode.m_scrCheckState = nil
 GameMode.m_scrEndState = nil
@@ -58,42 +68,85 @@ end
 ----------------------------------------------------------------------
 function GameMode:ctor()
     self.m_scrGemManager = GemManager.New(objGemManager)
-    self.m_scrMapManager = MapManager.New(objMapManager, 1)
+    self.m_scrMapManager = MapManager.New(objMapManager)
+    self.m_scrRuleSystem = RuleSystem.New()
+
     self.m_scrUiSystem = UiSystem.New(objUiSystem, function()
         -- print("On click uplevel")
-        self:UpdateLevel()
+        self.m_stateMachine:SwitchState(self.m_scrBuildState)
     end)
+    self.m_bIsRebuildMap = true
 
     -- init state machine
     self.m_stateMachine = StateMachine.New()
+    self.m_scrBuildState = State.New(
+    function() self:BeginBuild() end,
+    function() self:TickBuild() end,
+    function() self:EndBuild() end
+    )
     self.m_scrCheckState = State.New(
-        function() self:BeginCheck() end,
-        function() self:TickCheck() end,
-        function() self:EndCheck() end
+    function() self:BeginCheck() end,
+    function() self:TickCheck() end,
+    function() self:EndCheck() end
     )
     self.m_scrFallState = State.New(
-        function() self:BeginFall() end,
-        function() self:TickFall() end,
-        function() self:EndFall() end
+    function() self:BeginFall() end,
+    function() self:TickFall() end,
+    function() self:EndFall() end
     )
-    self.m_stateMachine:SwitchState(self.m_scrCheckState)
-end
-
-function GameMode:UpdateLevel()
-    self.m_scrMapManager:UpdateMap(1)
-    local tbNotFullLevels = self.m_scrMapManager:GetAllNotFullGroupIndexese(true)
-    -- PrintTable(tbNotFullLevels)
-    self.m_scrGemManager:CreateGem(tbNotFullLevels)
+    self.m_scrEndState = State.New(
+    function() self:EndFall() end,
+    nil,
+    nil
+    )
+    self.m_stateMachine:SwitchState(self.m_scrBuildState)
 end
 
 ----------------------------------------------------------------------
-function GameMode:BeginFall()
-    print("begin check")
+function GameMode:BeginBuild()
+    print("begin Build")
+    -- 是否重新创建关卡
+    if self.m_bIsRebuildMap then
+        self.m_bIsRebuildMap = false
+        self.m_scrMapManager:UpdateMap(self.m_iCurrentLevel)
+    end
+
+    -- 创建砖石
+    self.m_scrGemManager:ClearAllGem()
+    local tbNotFullLevelData = self.m_scrMapManager:GetAllNotFullGroupIndexese(true)
+    -- PrintTable(tbNotFullLevelData)
+    self.m_scrGemManager:CreateGem(tbNotFullLevelData, #self.m_scrMapManager.m_tbPointGroups)
 end
 
 
-function GameMode:TickFall()
+function GameMode:TickBuild()
+    self.m_stateMachine:SwitchState(self.m_scrFallState)
+end
 
+function GameMode:EndBuild()
+
+end
+
+
+----------------------------------------------------------------------
+function GameMode:BeginFall()
+    print("begin fall")
+
+    self.m_scrRuleSystem:FallGem(self.m_scrMapManager, self.m_scrGemManager)
+
+    -- move gems
+    self.iGemFallingTime = 0
+end
+
+-- 砖石下落的时间
+GameMode.iGemFallingTime = 0
+local iTotalGemFallingTime = 1
+function GameMode:TickFall()
+    if self.iGemFallingTime > iTotalGemFallingTime then
+        self.m_stateMachine:SwitchState(self.m_scrCheckState)
+    else
+        self.iGemFallingTime = self.iGemFallingTime + Utime.deltaTime
+    end
 end
 
 function GameMode:EndFall()
@@ -101,13 +154,20 @@ function GameMode:EndFall()
 end
 
 ----------------------------------------------------------------------
+GameMode.m_bNeedFall = false
 function GameMode:BeginCheck()
-    print("begin check")
+    print("Begin check")
+
+    self.m_bNeedFall = self.m_scrRuleSystem:CheckLink(self.m_iCurrentLevel, self.m_scrGemManager)
 end
 
-
 function GameMode:TickCheck()
-
+    if self.m_bNeedFall then
+        self.m_stateMachine:SwitchState(self.m_scrFallState)
+    else if self.m_scrRuleSystem:IsClearLevel() then
+            self.m_stateMachine:SwitchState(self.m_scrEndState)
+        end
+    end
 end
 
 function GameMode:EndCheck()
@@ -115,9 +175,10 @@ function GameMode:EndCheck()
 end
 
 ----------------------------------------------------------------------
-
 function GameMode:BeginEndState()
     print("game end")
+    self.m_scrRuleSystem:Reset()
+    self.m_bIsRebuildMap = true
 end
 
 ----------------------------------------------------------------------
