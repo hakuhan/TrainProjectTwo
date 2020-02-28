@@ -1,0 +1,38 @@
+local EventSystem = Class("EventSystem")
+
+function EventSystem:ctor()
+    self.m_tbEvents = {}
+end
+
+function EventSystem:AddEvent(strEventName, func, objSender)
+    table.insert(self.m_tbEvents, { strEventName = { func, objSender } })
+end
+
+function EventSystem:RemoveEvent(strEventName, objSender)
+    local strTargetIndex = nil
+    for k, v in pairs(self.m_tbEvents) do
+        if k == strEventName and objSender ~= nil and v[2]:GetInstanceID() == objSender:GetInstanceID() then
+            strTargetIndex = k
+            break
+        end
+    end
+
+    if strTargetIndex ~= nil then
+        table.remove(self.m_tbEvents, strTargetIndex)
+    end
+end
+
+function EventSystem:DispatchEvent(strEventName, ...)
+    for k, v in pairs(self.m_tbEvents) do
+        if strEventName == k then
+            -- 执行方法
+            v[2](...)
+        end
+    end
+end
+
+function EventSystem:ClearEvents()
+    self.m_tbEvents = {}
+end
+
+return EventSystem

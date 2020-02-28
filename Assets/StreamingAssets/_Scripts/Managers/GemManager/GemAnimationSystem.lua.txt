@@ -1,0 +1,30 @@
+local util = require 'xlua.util'
+
+local GemAnimationSystem = Class("GemAnimationSystem", UnityObjectClass)
+
+GemAnimationSystem.cs_coroutine_runner = nil
+
+function GemAnimationSystem:Init()
+    self.cs_coroutine_runner = self.m_object:AddComponent(typeof(CS.XLuaTest.Coroutine_Runner))
+end
+
+-- 顺序播放下落动画
+function GemAnimationSystem:FallGemWithSequence(lsGems, iInteral)
+    for k, tbGem in pairs(lsGems) do
+        local gem = tbGem["gem"]
+        gem.m_iGroupIndex = tbGem["iRaw"]
+        gem.m_bPlaced = true
+    end
+    self.cs_coroutine_runner:StartCoroutine(self:FallAsync(lsGems, iInteral))
+end
+
+function GemAnimationSystem:FallAsync(lsGems, iInteral)
+    return util.cs_generator(function()
+        for k, v in pairs(lsGems) do
+            coroutine.yield(Unity.WaitForSeconds(iInteral))
+            v["gem"]:MoveToTargetPosition(v["v3Position"], -1)
+        end
+    end)
+end
+
+return GemAnimationSystem

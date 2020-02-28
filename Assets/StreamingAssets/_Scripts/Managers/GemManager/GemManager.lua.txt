@@ -1,0 +1,203 @@
+--[[    create by baihan 2020.02.25 
+    宝石的管理类 
+--]]
+local GemRelationSystem = require("Managers.GemManager.GemRelationSystem")
+local GemAnimationSystem = require("Managers.GemManager.GemAnimationSystem")
+
+local GemManager = Class("GemManager", UnityObjectClass)
+local Gem = require("Items.Gem")
+
+-- sub system
+GemManager.m_scrGemAnimationSystem = nil
+GemManager.m_scrGemRalationSystem = nil
+
+-- 图片资源
+GemManager.m_scrObjData = {}
+-- gem容器
+GemManager.m_lsGems = {}
+-- gem的预制体
+GemManager.m_objGemTemp = nil
+-- 已经创建的宝石总量
+GemManager.m_iTotalCount = 1
+GemManager.m_scrGemRalationSystem = nil
+
+local m_eGemType = {
+    [1] = "Green",
+    [2] = "Blue",
+    [3] = "Yellow",
+    [4] = "Red",
+    [5] = "Purple",
+    [6] = "Diamond",
+}
+
+local m_diamondRate = 0.2
+
+local m_tbRate = {
+    ["Green"] = 0.35,
+    ["Blue"] = 0.7,
+    ["Yellow"] = 0.8,
+    ["Red"] = 0.9,
+    ["Purple"] = 1,
+}
+
+local m_tbTexIndex = {
+    ["Green"] = 0,
+    ["Blue"] = 1,
+    ["Yellow"] = 2,
+    ["Red"] = 3,
+    ["Purple"] = 4,
+    ["Diamond"] = 5
+}
+
+local m_strTexPath = ScriptablePath .. "scrObjGemTextures"
+local m_strGemPath = PrefabPath .. "Gem"
+
+function GemManager:Init()
+    self.m_scrObjData = Uload(m_strTexPath)
+    self.m_objGemTemp = Uload(m_strGemPath)
+    self.m_scrGemRalationSystem = GemRelationSystem.New()
+    self.m_scrGemAnimationSystem = GemAnimationSystem.New(self.m_object)
+end
+
+-- 通过随机概率生成宝石
+function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
+    -- Create diamond
+    local bCreateDiamond = math.random(1, 10) * 0.1 <= m_diamondRate
+    local iDiamondGroup = -1
+    local iDiamondRaw = -1
+    if bCreateDiamond and #tbGemPositionData > 0 then
+        iDiamondGroup = math.random(1, #tbGemPositionData);
+        iDiamondRaw = math.random(1, #tbGemPositionData[iDiamondGroup])
+    end
+    local bDiamondCreated = false
+
+    -- Create normal gem
+    for iGroupId, lsPositions in pairs(tbGemPositionData) do
+        for i, v3Position in pairs(lsPositions) do
+            -- Create rate
+            local iGemTexIndex = nil
+            local strGemType = nil
+
+            if bCreateDiamond and not bDiamondCreated and iGroupId == iDiamondGroup and i == iDiamondRaw then
+                iGemTexIndex = m_tbTexIndex["Diamond"]
+                strGemType = "Diamond"
+                bDiamondCreated = true
+            else
+                local gemRate = math.random(1, 10) * 0.1
+                -- 得到图片
+                for j, tex in ipairs(m_eGemType) do
+                    if m_tbRate[tex] >= gemRate then
+                        iGemTexIndex = m_tbTexIndex[tex]
+                        strGemType = tex
+                        break
+                    end
+                end
+            end
+
+            local texGem = self.m_scrObjData.lsDatas[iGemTexIndex].value;
+
+            -- Create gem
+            self:CreateSingleGem(v3Position, texGem, strGemType, iGroupId, iGroupDeep + 1)
+
+            table.insert(self.m_lsGems, scrGem)
+
+        end
+    end
+
+end
+
+-- 创建宝石
+function GemManager:CreateSingleGem(v3Position, texGem, strGetType, iGroupId, iRaw)
+    local objNewGem = Uinstantiate(self.m_objGemTemp, v3Position, UQuaternion.identity, self.m_transform)
+    local scrGem = Gem.New(objNewGem, texGem, self.m_iTotalCount + 1, strGetType, iGroupId, iRaw)
+
+    table.insert(self.m_lsGems, scrGem)
+    self.m_iTotalCount = self.m_iTotalCount + 1
+end
+
+-- 清理所有gem
+function GemManager:ClearAllGem()
+    for k, v in pairs(self.m_lsGems) do
+        Udestroy(v.m_object)
+    end
+    self.m_lsGems = {}
+end
+
+-- 移动所有宝石{0:{"iIndex":0, "v3Position":(0, 0, 0), "iGroupCount": 4, "iDistance":10}}
+function GemManager:GetAllGemMoveInfo(lsDeepPosition, bPlaced)
+    local iTime = 0
+    local lsGemDown = {}
+
+    for iGroupId, iDeepInfo in pairs(lsDeepPosition) do
+        local iDeepIndex = iDeepInfo["iIndex"]
+        local v3DeepPosition = iDeepInfo["v3Position"]
+        local iGroupCount = iDeepInfo["iGroupCount"]
+        local iStepDistance = iDeepInfo["iDistance"]
+
+        local iMoveCount = iGroupCount - iDeepIndex + 1
+        if iMoveCount >= 1 then
+            local iFindIndex = 0
+            for iGemIndex, gem in pairs(self.m_lsGems) do
+                if gem.m_bPlaced == bPlaced and gem.m_iGroup == iGroupId and gem.m_iGroupIndex > iDeepIndex + iFindIndex then
+                    local v3TargetPosition = v3DeepPosition + Uvec3(0, iStepDistance * iFindIndex, 0)
+                    table.insert(lsGemDown, {["gem"] = gem, ["v3Position"] = v3TargetPosition, ["iRaw"] = iDeepIndex + iFindIndex })
+                    iFindIndex = iFindIndex + 1
+                end
+            end
+        end
+
+    end
+
+    if #lsGemDown > 0 then
+        iTime = #lsGemDown * 0.1 + 0.5
+    end
+
+    return lsGemDown, iTime
+end
+
+-- 移动所有gem
+function GemManager:MoveAllGem(lsGemInfo)
+    self.m_scrGemAnimationSystem:FallGemWithSequence(lsGemInfo, 0.1)
+end
+
+-- 得到所有点的位置
+function GemManager:GetAllGemPosition(bPlaced)
+    local lsResult = {}
+    for k, v in pairs(self.m_lsGems) do
+        if v.m_bPlaced == bPlaced then
+            table.insert(lsResult, {["iGroup"] = v.m_iGroup, ["iRaw"] = v.m_iGroupIndex })
+        end
+    end
+
+    return lsResult
+end
+
+-- 得到连成线的宝石(线的最小数量) 返回{"eGemType":{indexs:{v2}}}
+function GemManager:GetLinkedGemIndex(iMinCount)
+    return self.m_scrGemRalationSystem:GetLinkedGemIndex(iMinCount, self.m_lsGems)
+end
+
+-- 得到宝石
+function GemManager:GetDiamond()
+    return self.m_scrGemRalationSystem:GetDiamond(self.m_lsGems, m_eGemType[6])
+end
+
+-- 连线所有Gem
+function GemManager:LinkGem(lsGem)
+    for i = 1, #lsGem do
+        local iGemId = self.m_scrGemRalationSystem:GetGemIndexById(lsGem[i], self.m_lsGems)
+        local gem = table.remove(self.m_lsGems, iGemId)
+        gem:DestoryWithAnimation(0.3)
+    end
+end
+
+-- 消除宝石
+function GemManager:DisapearGem(scrGem)
+    local iIndex = self.m_scrGemRalationSystem:GetGemIndexById(scrGem.m_iId, self.m_lsGems)
+    if iIndex > 0 then
+        local gem = table.remove(self.m_lsGems, iIndex)
+        gem:DestoryWithAnimation(0.3)
+    end
+end
+
+return GemManager

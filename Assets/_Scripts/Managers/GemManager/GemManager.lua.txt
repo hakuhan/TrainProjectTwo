@@ -1,10 +1,15 @@
 --[[    create by baihan 2020.02.25 
     宝石的管理类 
 --]]
-local GemRelationSystem = require("Utils.GemRelationSystem")
+local GemRelationSystem = require("Managers.GemManager.GemRelationSystem")
+local GemAnimationSystem = require("Managers.GemManager.GemAnimationSystem")
 
 local GemManager = Class("GemManager", UnityObjectClass)
 local Gem = require("Items.Gem")
+
+-- sub system
+GemManager.m_scrGemAnimationSystem = nil
+GemManager.m_scrGemRalationSystem = nil
 
 -- 图片资源
 GemManager.m_scrObjData = {}
@@ -25,7 +30,7 @@ local m_eGemType = {
     [6] = "Diamond",
 }
 
-local m_diamondRate = 0.9
+local m_diamondRate = 0.2
 
 local m_tbRate = {
     ["Green"] = 0.35,
@@ -50,7 +55,8 @@ local m_strGemPath = PrefabPath .. "Gem"
 function GemManager:Init()
     self.m_scrObjData = Uload(m_strTexPath)
     self.m_objGemTemp = Uload(m_strGemPath)
-    self.m_scrGemRalationSystem = GemRelationSystem.New();
+    self.m_scrGemRalationSystem = GemRelationSystem.New()
+    self.m_scrGemAnimationSystem = GemAnimationSystem.New(self.m_object)
 end
 
 -- 通过随机概率生成宝石
@@ -76,7 +82,6 @@ function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
                 iGemTexIndex = m_tbTexIndex["Diamond"]
                 strGemType = "Diamond"
                 bDiamondCreated = true
-                -- print("-------------------- Create diamond group：" .. iGroupId .. " raw: " .. iGroupDeep + 1)
             else
                 local gemRate = math.random(1, 10) * 0.1
                 -- 得到图片
@@ -119,10 +124,11 @@ function GemManager:ClearAllGem()
 end
 
 -- 移动所有宝石{0:{"iIndex":0, "v3Position":(0, 0, 0), "iGroupCount": 4, "iDistance":10}}
-function GemManager:MoveAllGemDown(lsDeepPosition, bPlaced)
-    local bResult = false
+function GemManager:GetAllGemMoveInfo(lsDeepPosition, bPlaced)
+    local iTime = 0
+    local lsGemDown = {}
+
     for iGroupId, iDeepInfo in pairs(lsDeepPosition) do
-        -- print("move group: " .. iGroupId)
         local iDeepIndex = iDeepInfo["iIndex"]
         local v3DeepPosition = iDeepInfo["v3Position"]
         local iGroupCount = iDeepInfo["iGroupCount"]
@@ -133,11 +139,8 @@ function GemManager:MoveAllGemDown(lsDeepPosition, bPlaced)
             local iFindIndex = 0
             for iGemIndex, gem in pairs(self.m_lsGems) do
                 if gem.m_bPlaced == bPlaced and gem.m_iGroup == iGroupId and gem.m_iGroupIndex > iDeepIndex + iFindIndex then
-                    bResult = true
                     local v3TargetPosition = v3DeepPosition + Uvec3(0, iStepDistance * iFindIndex, 0)
-                    -- print("gem id: " .. gem.m_iId .. " iGroup id: " .. iGroupId .. " iRaw: " .. iDeepIndex + iFindIndex .. " position: " .. v3TargetPosition.y .. " current index: " .. iFindIndex)
-                    gem:MoveToTargetPosition(v3TargetPosition, iDeepIndex + iFindIndex)
-                    gem.m_bPlaced = true
+                    table.insert(lsGemDown, {["gem"] = gem, ["v3Position"] = v3TargetPosition, ["iRaw"] = iDeepIndex + iFindIndex })
                     iFindIndex = iFindIndex + 1
                 end
             end
@@ -145,7 +148,16 @@ function GemManager:MoveAllGemDown(lsDeepPosition, bPlaced)
 
     end
 
-    return bResult
+    if #lsGemDown > 0 then
+        iTime = #lsGemDown * 0.1 + 0.5
+    end
+
+    return lsGemDown, iTime
+end
+
+-- 移动所有gem
+function GemManager:MoveAllGem(lsGemInfo)
+    self.m_scrGemAnimationSystem:FallGemWithSequence(lsGemInfo, 0.1)
 end
 
 -- 得到所有点的位置
@@ -173,7 +185,6 @@ end
 -- 连线所有Gem
 function GemManager:LinkGem(lsGem)
     for i = 1, #lsGem do
-        -- print("remove index: " .. lsGem[i])
         local iGemId = self.m_scrGemRalationSystem:GetGemIndexById(lsGem[i], self.m_lsGems)
         local gem = table.remove(self.m_lsGems, iGemId)
         gem:DestoryWithAnimation(0.3)
@@ -186,7 +197,6 @@ function GemManager:DisapearGem(scrGem)
     if iIndex > 0 then
         local gem = table.remove(self.m_lsGems, iIndex)
         gem:DestoryWithAnimation(0.3)
-        -- print("-------------------- diamond group：" .. scrGem.m_iGroup .. " raw: " .. scrGem.m_iGroupIndex)
     end
 end
 

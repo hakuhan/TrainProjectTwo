@@ -18,11 +18,11 @@ public class CustomLoader
             if (filename.IndexOf("perf.memory") != -1) return null;
             if (filename.IndexOf("perf.profiler") != -1) return null;
             /******************************************************/
-            filename = filename.Replace('.', '/');
 
 #if UNITY_EDITOR
             //unity环境直接用文件夹下脚本
             //替换点为文件下划线
+            filename = filename.Replace('.', '/');
             FileInfo file = new FileInfo(Application.dataPath + "/_Scripts/" + filename + ".lua.txt");
 #else
             FileInfo file = new FileInfo(Application.streamingAssetsPath + "/_Scripts/" + filename + ".lua.txt");

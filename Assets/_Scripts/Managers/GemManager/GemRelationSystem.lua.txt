@@ -72,12 +72,8 @@ function GemRelationSystem:GetLinkedGemIndex(iMinCount, lsGems)
 
         -- 判断是否可以添加到最终结果
         if #tbTempLinkResult >= iMinCount then
-            -- print("Print Same type table")
-            -- PrintTable(tbTempLinkResult)
             table.insert(tbLineResult, {[lsGems[iGemIndex].m_strType] = tbTempLinkResult })
         end
-
-
     end
 
     return tbLineResult
