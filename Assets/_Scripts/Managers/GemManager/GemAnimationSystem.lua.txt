@@ -10,15 +10,34 @@ end
 
 -- 顺序播放下落动画
 function GemAnimationSystem:FallGemWithSequence(lsGems, iInteral)
-    for k, tbGem in pairs(lsGems) do
-        local gem = tbGem["gem"]
-        gem.m_iGroupIndex = tbGem["iRaw"]
-        gem.m_bPlaced = true
+    if lsGems == nil then
+        return
     end
-    self.cs_coroutine_runner:StartCoroutine(self:FallAsync(lsGems, iInteral))
+    self.cs_coroutine_runner:StartCoroutine(self:SequenceFallAsync(lsGems, iInteral))
 end
 
-function GemAnimationSystem:FallAsync(lsGems, iInteral)
+-- 乱序下落动画
+function GemAnimationSystem:FallGemOutOfOrder(lsGems, iDuration)
+    if lsGems == nil then
+        return
+    end
+    self.cs_coroutine_runner:StartCoroutine(self:OurOffOrderFallAsync(lsGems, iDuration))
+end
+
+-- 乱序
+function GemAnimationSystem:OurOffOrderFallAsync(lsGems, iDuration)
+    return util.cs_generator(function()
+        coroutine.yield(Unity.WaitForSeconds(iDuration))
+
+        for k, v in pairs(lsGems) do
+            v["gem"]:MoveToTargetPosition(v["v3Position"], -1)
+        end
+    end)
+end
+
+
+-- 有序
+function GemAnimationSystem:SequenceFallAsync(lsGems, iInteral)
     return util.cs_generator(function()
         for k, v in pairs(lsGems) do
             coroutine.yield(Unity.WaitForSeconds(iInteral))

@@ -20,6 +20,8 @@ GemManager.m_objGemTemp = nil
 -- 已经创建的宝石总量
 GemManager.m_iTotalCount = 1
 GemManager.m_scrGemRalationSystem = nil
+-- 宝石移动时间
+GemManager.m_iGemMoveTime = 0.3
 
 local m_eGemType = {
     [1] = "Green",
@@ -150,6 +152,7 @@ function GemManager:GetAllGemMoveInfo(lsDeepPosition, bPlaced)
 
     if #lsGemDown > 0 then
         iTime = #lsGemDown * 0.1 + 0.5
+        -- iTime = self.m_iGemMoveTime
     end
 
     return lsGemDown, iTime
@@ -157,6 +160,12 @@ end
 
 -- 移动所有gem
 function GemManager:MoveAllGem(lsGemInfo)
+    for k, tbGem in pairs(lsGemInfo) do
+        local gem = tbGem["gem"]
+        gem.m_iGroupIndex = tbGem["iRaw"]
+        gem.m_bPlaced = true
+    end
+    -- self.m_scrGemAnimationSystem:FallGemOutOfOrder(lsGemInfo, 0.1)
     self.m_scrGemAnimationSystem:FallGemWithSequence(lsGemInfo, 0.1)
 end
 
