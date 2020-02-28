@@ -57,6 +57,12 @@ end
 function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
     -- Create diamond
     local bCreateDiamond = math.random(1, 10) * 0.1 <= m_diamondRate
+    local iDiamondGroup = -1
+    local iDiamondRaw = -1
+    if bCreateDiamond then
+        iDiamondGroup = math.random(1, #tbGemPositionData);
+        iDiamondRaw = math.random(1, #tbGemPositionData[iDiamondGroup])
+    end
     local bDiamondCreated = false
 
     -- Create normal gem
@@ -66,7 +72,7 @@ function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
             local iGemTexIndex = nil
             local strGemType = nil
 
-            if bCreateDiamond and not bDiamondCreated then
+            if bCreateDiamond and not bDiamondCreated and iGroupId == iDiamondGroup and i == iDiamondRaw then
                 iGemTexIndex = m_tbTexIndex["Diamond"]
                 strGemType = "Diamond"
                 bDiamondCreated = true
