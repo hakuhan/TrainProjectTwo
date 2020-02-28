@@ -16,7 +16,7 @@ MapManager.m_tbPointGroups = {}
 
 -- 地图的线
 MapManager.m_lines = {
-    ["horizotal"] = {},
+    ["horizontal"] = {},
     ["vertical"] = {}
 }
 
@@ -53,7 +53,7 @@ function MapManager:UpdateMapLine(iLevel, iBaseCount, iBaseDistance)
         local scrHorWallLine = WallLine.New(objHorWallLine, iBaseDistance * (ilineCount - 1), true)
         local scrVerWallLine = WallLine.New(objVerWallLine, iBaseDistance * (ilineCount - 1), false)
 
-        table.insert(self.m_lines["horizotal"], scrHorWallLine)
+        table.insert(self.m_lines["horizontal"], scrHorWallLine)
         table.insert(self.m_lines["vertical"], scrVerWallLine)
     end
 
@@ -66,7 +66,7 @@ function ClearLine(tbLine)
         return
     end
 
-    for i, v in ipairs(tbLine) do
+    for i, v in pairs(tbLine) do
         Udestroy(v.m_object)
     end
 
@@ -75,6 +75,7 @@ end
 
 -- 更新地图的存放点组
 function MapManager:UpdateMapGroups(iLevel, iBaseCount, iBaseDistance)
+    self.m_tbPointGroups = {}
     local iGroupCount = iBaseCount + iLevel - 1
     local iHalfDistance = iBaseDistance / 2
 
@@ -152,6 +153,8 @@ function MapManager:GetPoint(iGroup, iItemIndex)
     local v3Result = nil
     local tbGroup = self.m_tbPointGroups[iGroup];
     local tbItem = tbGroup[iItemIndex]
+    -- print("Item: ")
+    -- PrintTable(tbItem)
 
     if not tbItem["bFill"] then
         v3Result = tbItem["v3Position"]
@@ -160,11 +163,21 @@ function MapManager:GetPoint(iGroup, iItemIndex)
     return v3Result
 end
 
+-- 填充所有
+function MapManager:FillAll(bFill)
+    for iGroup, tbGroup in pairs(self.m_tbPointGroups) do
+        for i, v in pairs(tbGroup) do
+            v["bFill"] = bFill
+        end
+    end
+end
+
 -- 填充iGroup组的iItemIndex位置（1为最下的位置）
-function MapManager:FillPoint(iGroup, iItemIndex)
+function MapManager:FillPoint(iGroup, iItemIndex, bFill)
+    -- print("iGroup " .. iGroup .. " iItemIndex " .. iItemIndex)
     local tbGroup = self.m_tbPointGroups[iGroup];
     local tbItem = tbGroup[iItemIndex]
-    tbItem["bFill"] = true
+    tbItem["bFill"] = bFill
 end
 
 -- 得到当前组所有为空的点

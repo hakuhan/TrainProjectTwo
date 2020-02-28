@@ -1,0 +1,134 @@
+local GemRelationSystem = Class("GemRelationSystem")
+
+function GemRelationSystem:ctor()
+
+end
+
+-- 得到连成线的宝石(线的最小数量) 返回{"eGemType":{indexs:{v2}}}
+function GemRelationSystem:GetLinkedGemIndex(iMinCount, lsGems)
+    local tbLineResult = {}
+
+    -- 用于判断是否已经查找过
+    local tbFindedtable = {}
+    for i = 1, #lsGems do
+        tbFindedtable[i] = false
+    end
+
+    for iGemIndex, gem in ipairs(lsGems) do
+        -- 连接线的临时结果
+        local tbTempLinkResult = {}
+        -- 已经找到且没有遍历的gem下标
+        local tbSameType = {}
+
+        local bCurrentOver = false
+        local iGroup = lsGems[iGemIndex].m_iGroup
+        local iRaw = lsGems[iGemIndex].m_iGroupIndex
+        
+        -- insert self
+        while not bCurrentOver do
+            -- 查找上下左右的gem的类型是否和当前相同
+            local scrCurrentGem, iGemId = self:GetGem(iGroup, iRaw, true, lsGems)
+            local topGem, iTopId = self:GetGem(iGroup, iRaw + 1, true, lsGems)
+            local downGem, iDownId = self:GetGem(iGroup, iRaw - 1, true, lsGems)
+            local leftGem, iLeftId = self:GetGem(iGroup - 1, iRaw, true, lsGems)
+            local rightGem, iRightId = self:GetGem(iGroup + 1, iRaw, true, lsGems)
+
+
+            if scrCurrentGem ~= nil then
+                -- 插入当前的数据
+                self.CreateGemIndexTable(iGroup, iRaw, tbTempLinkResult, iGemId, gem.m_strType)
+                tbFindedtable[iGemId] = true
+            end
+
+            -- 上
+            if topGem ~= nil and not tbFindedtable[iTopId] and topGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iTopId] = true
+                table.insert(tbSameType, {["id"] = iTopId, ["iGroup"] = iGroup, ["iRaw"] = iRaw + 1 })
+            end
+            -- 下
+            if downGem ~= nil and not tbFindedtable[iDownId] and downGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iDownId] = true
+                table.insert(tbSameType, {["id"] = iDownId, ["iGroup"] = iGroup, ["iRaw"] = iRaw - 1 })
+            end
+            -- 左
+            if leftGem ~= nil and not tbFindedtable[iLeftId] and leftGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iLeftId] = true
+                table.insert(tbSameType, {["id"] = iLeftId, ["iGroup"] = iGroup - 1, ["iRaw"] = iRaw })
+            end
+            -- 右
+            if rightGem ~= nil and not tbFindedtable[iRightId] and rightGem.m_strType == scrCurrentGem.m_strType then
+                tbFindedtable[iRightId] = true
+                table.insert(tbSameType, {["id"] = iRightId, ["iGroup"] = iGroup + 1, ["iRaw"] = iRaw })
+            end
+
+            if #tbSameType == 0 then
+                bCurrentOver = true
+            else
+                local tbIndex = table.remove(tbSameType, 1)
+                iGroup = tbIndex["iGroup"]
+                iRaw = tbIndex["iRaw"]
+            end
+        end
+
+        -- 判断是否可以添加到最终结果
+        if #tbTempLinkResult >= iMinCount then
+            -- print("Print Same type table")
+            -- PrintTable(tbTempLinkResult)
+            table.insert(tbLineResult, {[lsGems[iGemIndex].m_strType] = tbTempLinkResult })
+        end
+
+
+    end
+
+    return tbLineResult
+end
+
+-- 得到宝石
+function GemRelationSystem:GetDiamond(lsGem, strDiamondType)
+    local scrDiamond = nil
+    for k,v in pairs(lsGem) do
+        if v.m_strType == strDiamondType then
+            scrDiamond = v
+            break
+        end
+    end
+
+    return scrDiamond
+end
+
+-- 得到gem
+function GemRelationSystem:GetGem(iGroup, iRaw, bPlaced, lsGems)
+    local gem, iGemId = nil
+    for i, v in ipairs(lsGems) do
+        if v.m_iGroup == iGroup and v.m_iGroupIndex == iRaw and v.m_bPlaced == bPlaced then
+            gem = v
+            iGemId = gem.m_iId
+        end
+    end
+
+    return gem, iGemId
+end
+
+-- 得到gem下标
+function GemRelationSystem:GetGemIndexById(id, lsGems)
+    local iIndex = -1
+
+    for k,v in pairs(lsGems) do
+        if v.m_iId == id then
+            iIndex = k
+            break
+        end
+    end
+
+    return iIndex
+end
+
+
+-- 插入用于返回连接数据的表数据
+function GemRelationSystem.CreateGemIndexTable(iGroup, iRaw, tb, iGemIndex, strGemType)
+    local tbMapIndex = {["iGroup"] = iGroup, ["iRaw"] = iRaw }
+    table.insert(tb, {["id"] = iGemIndex, ["eGameType"] = strGemType, ["tbMapIndex"] = tbMapIndex })
+end
+
+
+return GemRelationSystem

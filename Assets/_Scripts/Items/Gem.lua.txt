@@ -18,6 +18,9 @@ Gem.m_iGroupIndex = nil
 -- 类型
 Gem.m_strType = nil
 
+-- 是否安放
+Gem.m_bPlaced = false
+
 function Gem:Init(texNewImage, iId, strType, group, iGroupIndex)
     self.m_object.name = iId .. "_" .. group
     self.m_mainImage = self.m_transform.gameObject:GetComponent("RawImage")
@@ -39,6 +42,7 @@ end
 
 -- 播放动画并删除
 function Gem:DestoryWithAnimation(fDestoryTime)
+    -- print("Destory gem id: " .. self.m_iId)
     local deadTween = self.m_transform:DOScale(Uvec3(0, 0, 0), fDestoryTime)
     deadTween:OnComplete(function()
         Udestroy(self.m_transform.gameObject)

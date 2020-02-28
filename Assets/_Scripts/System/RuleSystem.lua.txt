@@ -6,6 +6,9 @@ local RuleSystem = Class("RuleSystem")
 local m_clearLevelDiamondCount = 3
 RuleSystem.m_iCurrentDiamondCount = 0
 
+-- 连消
+RuleSystem.m_iCounter = 0
+
 -- 每关连线的数量
 local m_lineNumber = {
     [1] = 3,
@@ -29,43 +32,92 @@ end
 
 function RuleSystem:Reset()
     self.m_iCurrentDiamondCount = 0
+    self.m_iCounter = 0
 end
 
 function RuleSystem:FallGem(scrMapManager, scrGemManager)
-    -- 移动所有在地图上的宝石
-    local lsNotFullGroup = scrMapManager:GetAllNotFullGroup()
+    -- 移动在地图上的宝石
+    local lsAllGroupDownPosition = scrMapManager:GetAllGroupDeepPosition();
+    -- PrintTable(lsAllGroupDownPosition)
+    local bMoved = scrGemManager:MoveAllGemDown(lsAllGroupDownPosition, true)
 
-    for iGroupId, groupItem in pairs(lsNotFullGroup) do
-        for iGemIndex, v in pairs(scrGemManager.m_lsGems) do
-            if v.m_iGroupIndex < #scrMapManager.m_tbPointGroups and v.m_iGroupIndex > v["iGroupIndex"] then
-                -- move down
-                local iStep = scrGemManager:GetLowerGemCount(v)
-                local iGroupIndex = v.m_iGroupIndex - iStep
-                local v3MovePosition = scrMapManager:GetPoint(iGroupId, iGroupIndex)
+    local fDelayTime = 0
+    if bMoved then
+        fDelayTime = 1
+    end
 
-                scrGemManager:MoveGem(iGemIndex, v3MovePosition, iGroupIndex)
-                -- print("iGroup id: " .. iGroupId .. " iRaw: " .. iGroupIndex)
-                scrMapManager:FillPoint(iGroupId, iGroupIndex)
+    GTime:AddDelay(function()
+        -- 移动所有没有在地图上的宝石
+        local lsAllGroupDownPosition = scrMapManager:GetAllGroupDeepPosition();
+        -- print("Not on map gem")
+        -- PrintTable(lsAllGroupDownPosition)
+        scrGemManager:MoveAllGemDown(lsAllGroupDownPosition, false)
+
+        -- fill map
+        local lsAllFilledPoint = scrGemManager:GetAllGemPosition(true)
+        scrMapManager:FillAll(false)
+        -- print("Mark all gem")
+        -- PrintTable(lsAllFilledPoint)
+        for k, v in pairs(lsAllFilledPoint) do
+            scrMapManager:FillPoint(v["iGroup"], v["iRaw"], true)
+        end
+    end, fDelayTime)
+
+
+end
+
+-- 检查连线和砖石
+function RuleSystem:CheckLink(iCurrentLevel, scrGemManager, scrMapManager)
+    local bNeedFall = false
+
+    -- print(m_lineNumber[iCurrentLevel])
+    local tbLink = scrGemManager:GetLinkedGemIndex(m_lineNumber[iCurrentLevel])
+    -- print("need Link table: ")
+    -- PrintTable(tbLink)
+    local tbGems = {}
+    if #tbLink > 0 then
+        bNeedFall = true
+        for i, tbType in pairs(tbLink) do
+            for j, tbInfo in pairs(tbType) do
+                for k = 1, #tbInfo do
+                    table.insert(tbGems, tbInfo[k]["id"])
+                    -- PrintTable(tbInfo)
+                    local tbGroupInfo = tbInfo[k]["tbMapIndex"]
+                    scrMapManager:FillPoint(tbGroupInfo["iGroup"], tbGroupInfo["iRaw"], false)
+                end
             end
         end
     end
 
-    -- 移动没有下落的宝石
-    local lsAllGroupDownPosition = scrMapManager:GetAllGroupDeepPosition();
-    scrGemManager:MoveAllGemDown(lsAllGroupDownPosition)
-end
+    -- diamond
+    local scrDiamond = scrGemManager:GetDiamond()
+    if scrDiamond ~= nil then
+        bNeedFall = true
+        scrMapManager:FillPoint(scrDiamond.m_iGroup, scrDiamond.m_iGroupIndex, false)
+        scrGemManager:DisapearGem(scrDiamond)
+        self.m_iCurrentDiamondCount = self.m_iCurrentDiamondCount + 1
+    end
 
--- 检查连线和砖石
-function RuleSystem:CheckLink(iCurrentLevel, scrGemManager)
-    local bNeedFall = false
-    
-    print(m_lineNumber[iCurrentLevel])
-    local tbLink = scrGemManager:GetLinkedGemIndex(m_lineNumber[iCurrentLevel])
-    
+    -- print("map:")
+    -- PrintTable(scrMapManager.m_tbPointGroups)    
+    -- PrintTable(tbGems)
+    scrGemManager:LinkGem(tbGems)
 
-    PrintTable(tbLink)
+    self:UpdateCounter(bNeedFall)
 
     return bNeedFall
+end
+
+function RuleSystem:GetTotalDiamond()
+    return m_clearLevelDiamondCount
+end
+
+function RuleSystem:UpdateCounter(bCount)
+    if bCount then
+        self.m_iCounter = self.m_iCounter +  1
+    else
+        self.m_iCounter = 0
+    end
 end
 
 return RuleSystem
