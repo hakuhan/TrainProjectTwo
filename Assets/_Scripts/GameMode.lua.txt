@@ -102,7 +102,7 @@ function GameMode:ctor()
 end
 
 function GameMode:UpdateUi()
-    self.m_scrUiSystem:UpdateUi(self.m_scrRuleSystem.m_iCurrentDiamondCount, self.m_scrRuleSystem:GetTotalDiamond(), 0, self.m_iCurrentLevel)
+    self.m_scrUiSystem:UpdateUi(self.m_scrRuleSystem.m_iCurrentDiamondCount, self.m_scrRuleSystem:GetTotalDiamond(), self.m_scrRuleSystem.m_iCounter, self.m_iCurrentLevel)
 end
 
 ----------------------------------------------------------------------

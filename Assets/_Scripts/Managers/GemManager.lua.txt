@@ -59,7 +59,7 @@ function GemManager:CreateGem(tbGemPositionData, iGroupDeep)
     local bCreateDiamond = math.random(1, 10) * 0.1 <= m_diamondRate
     local iDiamondGroup = -1
     local iDiamondRaw = -1
-    if bCreateDiamond then
+    if bCreateDiamond and #tbGemPositionData > 0 then
         iDiamondGroup = math.random(1, #tbGemPositionData);
         iDiamondRaw = math.random(1, #tbGemPositionData[iDiamondGroup])
     end
