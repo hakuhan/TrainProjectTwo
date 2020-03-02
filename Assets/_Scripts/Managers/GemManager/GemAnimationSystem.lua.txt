@@ -17,19 +17,19 @@ function GemAnimationSystem:FallGemWithSequence(lsGems, iInteral)
 end
 
 -- 乱序下落动画
-function GemAnimationSystem:FallGemOutOfOrder(lsGems, iDuration)
+function GemAnimationSystem:FallGemOutOfOrder(lsGems)
     if lsGems == nil then
         return
     end
-    self.cs_coroutine_runner:StartCoroutine(self:OurOffOrderFallAsync(lsGems, iDuration))
+    local lsNewOrerGems = self:OutOffOrder(lsGems)
+    self.cs_coroutine_runner:StartCoroutine(self:OurOffOrderFallAsync(lsNewOrerGems))
 end
 
 -- 乱序
 function GemAnimationSystem:OurOffOrderFallAsync(lsGems, iDuration)
     return util.cs_generator(function()
-        coroutine.yield(Unity.WaitForSeconds(iDuration))
-
         for k, v in pairs(lsGems) do
+            coroutine.yield(Unity.WaitForEndOfFrame())
             v["gem"]:MoveToTargetPosition(v["v3Position"], -1)
         end
     end)
@@ -40,10 +40,29 @@ end
 function GemAnimationSystem:SequenceFallAsync(lsGems, iInteral)
     return util.cs_generator(function()
         for k, v in pairs(lsGems) do
-            coroutine.yield(Unity.WaitForSeconds(iInteral))
+            coroutine.yield(Unity.WaitForEndOfFrame())
             v["gem"]:MoveToTargetPosition(v["v3Position"], -1)
         end
     end)
+end
+
+-- 打乱table
+function GemAnimationSystem:OutOffOrder(t)
+    if type(t)~="table" then
+        return
+    end
+    local tab={}
+    local index=1
+    while #t~=0 do
+        local n=math.random(0,#t)
+        if t[n]~=nil then
+            tab[index]=t[n]
+            table.remove(t,n)
+            index=index+1
+        end
+    end
+
+    return tab
 end
 
 return GemAnimationSystem

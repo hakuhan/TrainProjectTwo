@@ -8,7 +8,7 @@ using UnityEngine.UI;
 using XLua;
 
 
-namespace jz.mymj
+namespace TPTwo
 {
     public static class XLuaCustomExport
     {
@@ -58,6 +58,9 @@ namespace jz.mymj
             typeof(UnityEngine.LineAlignment),
             typeof(UnityEngine.LineTextureMode),
             typeof(UnityEngine.Color),
+
+            // yiel
+            typeof(UnityEngine.WaitForEndOfFrame),
         };
     }
 }

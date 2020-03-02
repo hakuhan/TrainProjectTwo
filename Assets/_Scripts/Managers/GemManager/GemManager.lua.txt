@@ -151,7 +151,7 @@ function GemManager:GetAllGemMoveInfo(lsDeepPosition, bPlaced)
     end
 
     if #lsGemDown > 0 then
-        iTime = #lsGemDown * 0.1 + 0.5
+        iTime = #lsGemDown * Utime.deltaTime + 0.5
         -- iTime = self.m_iGemMoveTime
     end
 
@@ -165,8 +165,8 @@ function GemManager:MoveAllGem(lsGemInfo)
         gem.m_iGroupIndex = tbGem["iRaw"]
         gem.m_bPlaced = true
     end
-    -- self.m_scrGemAnimationSystem:FallGemOutOfOrder(lsGemInfo, 0.1)
-    self.m_scrGemAnimationSystem:FallGemWithSequence(lsGemInfo, 0.1)
+    self.m_scrGemAnimationSystem:FallGemOutOfOrder(lsGemInfo, 0.1)
+    -- self.m_scrGemAnimationSystem:FallGemWithSequence(lsGemInfo, 0.1)
 end
 
 -- 得到所有点的位置
