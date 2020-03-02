@@ -112,6 +112,7 @@ function GameMode:BeginBuild()
     -- 是否重新创建关卡
     if self.m_bIsRebuildMap then
         self.m_bIsRebuildMap = false
+        self.m_scrRuleSystem.m_iCounter = 0
         self.m_scrMapManager:UpdateMap(self.m_iCurrentLevel)
     end
 
@@ -173,6 +174,7 @@ function GameMode:BeginEndState()
     self.m_scrRuleSystem:Reset()
     self.m_bIsRebuildMap = true
     self.m_bClearAllGem = true
+    self.m_scrRuleSystem.m_iCounter = 0
     if self.m_iCurrentLevel >= self.m_iTotalLevelCount then
         self.m_iCurrentLevel = 1
     else
