@@ -65,7 +65,7 @@ end
 
 ----------------------------------------------------------------------
 function GameMode:ctor()
-    self.m_scrGemManager = GemManager.New(objGemManager)
+    self.m_scrGemManager = GemManager.New(objGemManager, 4)
     self.m_scrMapManager = MapManager.New(objMapManager)
     self.m_scrRuleSystem = RuleSystem.New()
 

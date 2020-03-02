@@ -1,0 +1,35 @@
+--[[
+    create by baihan 2020-03-02
+    宝石的工具类
+--]]
+local GemUtil = Class("GemUtil")
+
+-- 得到宝石的类型
+function GemUtil:GetGemType(tbRate, tbTexIndex, eGemType, scrObjData)
+    local strGemType = nil
+    local texGem = nil
+    local iGemTexIndex = nil
+    local gemRate = math.random(1, 10) * 0.1
+    
+    -- 得到图片
+    for j, tex in ipairs(eGemType) do
+        if tbRate[tex] >= gemRate then
+            iGemTexIndex = tbTexIndex[tex]
+            strGemType = tex
+            break
+        end
+    end
+
+    texGem = scrObjData.lsDatas[iGemTexIndex].value
+
+    return strGemType, texGem
+end
+
+--得到砖石的数据
+function GemUtil:IsCreateDiamond(fDiamondRate)
+    local bCreateDiamond = math.random(1, 100) * 0.01 <= fDiamondRate
+
+    return bCreateDiamond
+end
+
+return GemUtil

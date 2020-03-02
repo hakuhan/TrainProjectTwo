@@ -56,6 +56,7 @@ function Gem:MoveToTargetPosition(v3TargetPositon, iGroupIndex)
         self.m_iGroupIndex = iGroupIndex
     end
     self.m_transform:DOMove(v3TargetPositon, self.m_iMoveTime):SetEase(DOEase.InOutSine):SetLink(self.m_object)
+    -- print("start position: " .. self.m_transform.position.y .. " to " .. v3TargetPositon.y)
 end
 
 return Gem;

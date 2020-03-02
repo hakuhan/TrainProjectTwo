@@ -1,0 +1,131 @@
+--[[    create by baihan 2020-03-02
+    管理一行的宝石
+--]]
+local m_eGemType = {
+    [1] = "Green",
+    [2] = "Blue",
+    [3] = "Yellow",
+    [4] = "Red",
+    [5] = "Purple",
+    [6] = "Diamond",
+}
+
+local m_diamondRate = 0.05
+
+local m_tbRate = {
+    ["Green"] = 0.35,
+    ["Blue"] = 0.7,
+    ["Yellow"] = 0.8,
+    ["Red"] = 0.9,
+    ["Purple"] = 1,
+}
+
+local m_tbTexIndex = {
+    ["Green"] = 0,
+    ["Blue"] = 1,
+    ["Yellow"] = 2,
+    ["Red"] = 3,
+    ["Purple"] = 4,
+    ["Diamond"] = 5
+}
+
+local m_strTexPath = ScriptablePath .. "scrObjGemTextures"
+
+local GemLineManager = Class("GemLineManager", UnityObjectClass)
+
+local m_strGemPath = PrefabPath .. "Gem"
+
+local GemUtil = require("Managers.GemManager.GemUtil")
+local Gem = require("Items.Gem")
+
+-- 位置
+GemLineManager.m_v3FistGemPosition = nil
+GemLineManager.m_v3CreatePosition = nil
+
+GemLineManager.m_lsGems = {}
+GemLineManager.m_fGemDistance = 10
+GemLineManager.m_scrGemUtil = nil
+-- 图片资源
+GemLineManager.m_scrObjData = {}
+-- 已经创建的宝石总量
+GemLineManager.m_iTotalCount = 1
+
+function GemLineManager:Init()
+    self.m_scrObjData = Uload(m_strTexPath)
+    self.m_objGemTemp = Uload(m_strGemPath)
+    self.m_v3FistGemPosition = self.m_transform:Find("StartShowPoint").position
+    self.m_v3CreatePosition = self.m_transform:Find("CreatePosition").position
+    self.m_scrGemUtil = GemUtil.New()
+end
+
+-- 更新宝石
+function GemLineManager:UpdateLineInfo(iCount)
+    for iGroup = 1, iCount do
+        if self.m_lsGems[iGroup] == nil or self.m_lsGems[iGroup]["bUpdate"] == true then
+            if self.m_lsGems[iGroup] == nil then
+                self.m_lsGems[iGroup] = {}
+                self.m_lsGems[iGroup]["bUpdate"] = false
+                self.m_lsGems[iGroup]["scrGem"] = nil
+            end
+
+            -- 删除需要更新的
+            if self.m_lsGems[iGroup]["bUpdate"] == true or self.m_lsGems[iGroup]["scrGem"] == nil then
+                self.m_lsGems[iGroup]["bUpdate"] = false
+                self.m_lsGems[iGroup]["scrGem"] = nil
+            end
+
+            if self.m_lsGems[iGroup]["scrGem"] == nil and self.m_lsGems[iGroup]["bUpdate"] == false then
+                -- Create gem
+                local bCreateDiamond = self.m_scrGemUtil:IsCreateDiamond(m_diamondRate)
+
+                local v3StartPosition = Uvec3(self.m_v3CreatePosition.x + self.m_fGemDistance * (iGroup - 1), self.m_v3CreatePosition.y, self.m_v3CreatePosition.z)
+                local v3Position = Uvec3(self.m_v3FistGemPosition.x + self.m_fGemDistance * (iGroup - 1), self.m_v3FistGemPosition.y, self.m_v3FistGemPosition.z)
+                local strType = nil
+                local texImage = nil
+
+                -- is diamond
+                if bCreateDiamond then
+                    strType = m_eGemType[6]
+                    texImage = self.m_scrObjData.lsDatas[m_tbTexIndex[strType]].value
+                else
+                    strType, texImage = self.m_scrGemUtil:GetGemType(m_tbRate, m_tbTexIndex, m_eGemType, self.m_scrObjData)
+                end
+
+                local scrGem = self:CreateSingleGem(v3StartPosition, texImage, strType, iGroup, iCount + 1)
+                scrGem:MoveToTargetPosition(v3Position, -1)
+                self.m_lsGems[iGroup]["scrGem"] = scrGem
+            end
+
+        end
+    end
+
+    -- remove out of range
+    if #self.m_lsGems > iCount then
+        for index = #self.m_lsGems, iCount + 1, -1 do
+            Udestroy(self.m_lsGems[index]["scrGem"].m_object)
+            self.m_lsGems[index] = nil
+        end
+    end
+end
+
+-- 得到宝石
+function GemLineManager:GetGem(iGemGroup)
+    if iGemGroup > #self.m_lsGems then
+        print("iGemGroup out of range")
+        return nil
+    end
+    self.m_lsGems[iGemGroup]["bUpdate"] = true
+    return self.m_lsGems[iGemGroup]["scrGem"]
+end
+
+-- 创建宝石
+function GemLineManager:CreateSingleGem(v3Position, texGem, strGetType, iGroupId, iRaw)
+    local objNewGem = Uinstantiate(self.m_objGemTemp, v3Position, UQuaternion.identity, self.m_transform)
+    local scrGem = Gem.New(objNewGem, texGem, self.m_iTotalCount + 1, strGetType, iGroupId, iRaw)
+    self.m_iTotalCount = self.m_iTotalCount + 1
+
+    return scrGem
+end
+
+
+return GemLineManager
